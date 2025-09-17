@@ -1,5 +1,3 @@
-```vue
-// filepath: d:\INTERN PHASE\myAlfa\components\ProductCard.vue
 <template>
   <div class="product-card">
     <div class="thumb" @click="$emit('open-detail', product)">

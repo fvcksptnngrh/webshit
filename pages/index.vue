@@ -1,5 +1,3 @@
-```vue
-// filepath: d:\INTERN PHASE\myAlfa\pages\index.vue
 <template>
   <div>
     <div class="mt-4 mt-lg-5"><BannerSlider /></div>
@@ -32,11 +30,13 @@
         :yPercent="15"
         @close="showToast=false"
       />
+      <!-- Pastikan ProductDescriptionPopup sudah diimpor dan digunakan dengan benar -->
       <ProductDescriptionPopup
-      :visible="showDescPopup"
-      :product="selectedProduct"
-      @close="showDescPopup=false"
-    />
+        :visible="showDescPopup"
+        :product="selectedProduct"
+        @close="closeDesc"
+        @add-to-cart="onAdded"
+      />
     </div>
 
     <div class="mt-5 mb-5">
@@ -64,16 +64,21 @@ import GifSection from '~/components/GifSection.vue'
 import ProductSection from '~/components/ProductSection.vue'
 import Achievements from '~/components/Achievements.vue'
 import SeoContent from '~/components/SeoContent.vue'
-import ProductGrid from '~/components/ProductGrid.vue'
 import AddToCartPopup from '~/components/AddToCartPopup.vue'
 import InfoToast from '~/components/InfoToast.vue'
 import ProductDescriptionPopup from '~/components/ProductDescriptionPopup.vue'
 
 export default {
   components: {
-    BannerSlider, CategorySlider, GifSection,
-    ProductSection, Achievements, SeoContent,
-    ProductGrid, AddToCartPopup, InfoToast, ProductDescriptionPopup
+    BannerSlider,
+    CategorySlider,
+    GifSection,
+    ProductSection,
+    Achievements,
+    SeoContent,
+    AddToCartPopup,
+    InfoToast,
+    ProductDescriptionPopup  // Pastikan component ini terdaftar
   },
   data() {
     return {
@@ -81,7 +86,6 @@ export default {
       popupProduct: null,
       showToast: false,
       toastMessage: '',
-      products: [], // biarkan kosong atau hapus ProductGrid
       showDescPopup: false,
       selectedProduct: null
     }
@@ -107,10 +111,13 @@ export default {
       this.$root.$emit('ui:openMiniCart')
       this.showAddPopup = false
     },
+    // Perbaikan method openDetail
     openDetail(product) {
-      console.log('detail product', product?.id)
+      console.log('Opening detail for product:', product) // Debug log
+      this.selectedProduct = { ...product }  // Gunakan spread operator untuk membuat copy baru
+      this.showDescPopup = true
     },
-    openDetail(product) {
+    closeDesc() {
       this.showDescPopup = false
       this.selectedProduct = null
     }

@@ -1,3 +1,4 @@
+import { componentsPlugin } from "bootstrap-vue";
 
 export default {
   mode: 'universal',
@@ -39,9 +40,24 @@ export default {
   ** Nuxt.js modules
   */
   modules: [
-  // Doc: https://bootstrap-vue.js.org
   '@nuxtjs/composition-api/module',
-  'bootstrap-vue/nuxt',
+  ['bootstrap-vue/nuxt',{
+    componentsPlugin: [
+      'NavbarPlugin',
+      'ButtonPlugin',
+      'CarouselPlugin',
+      'ImagePlugin'
+    ],
+    component: [
+      'Bnav',
+      'BNavbar',
+      'Bcontainer',
+      'Bbtn',
+      'Bcarousel',
+      'Bimg'
+    ]
+      }
+    ]
   ],
   
   bootstrapVue: {
@@ -53,9 +69,12 @@ export default {
   ** Build configuration
   */
   build: {
-    /*
-    ** You can extend webpack config here
-    */
+    babel: {
+      compact: true,
+      generatorOpts: {
+        maxSize: 1000000
+      }
+    },
     extend (config, ctx) {
     }
   }

@@ -115,7 +115,6 @@ export default {
       if (done) done()
     },
 
-    // Throttle: abaikan klik saat animasi jalan
     next() {
       if (this.isAnimating || this.isJumping) return
       this.isAnimating = true
@@ -129,7 +128,6 @@ export default {
       this.vIndex -= 1
     },
 
-    // Transition selesai -> jika di clone, snap tanpa animasi, lalu buka kunci
     async onTransitionEnd() {
       const middleStart = this.startIndex
       const middleEnd = this.startIndex + this.categories.length - 1
@@ -141,7 +139,6 @@ export default {
       this.isAnimating = false
     },
 
-    // Snap tanpa animasi, kembalikan Promise untuk waktu buka kunci yang tepat
     jumpSilently(toIndex) {
       return new Promise(resolve => {
         this.isJumping = true

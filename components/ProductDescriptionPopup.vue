@@ -1,54 +1,66 @@
 <template>
-  <transition name="desc-fade">
-    <div
-      v-if="visible"
-      class="desc-overlay"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="product?.name || 'Deskripsi Produk'"
-      @keydown.esc.prevent="$emit('close')"
-    >
-      <div class="desc-backdrop" @click="$emit('close')" />
-      <div class="desc-panel" ref="panel">
+  <transition name="fade">
+    <div v-if="visible" class="popup-overlay" @click.self="$emit('close')">
+      <div class="popup-content">
+        <!-- Header (Fixed) -->
         <button class="close-btn" @click="$emit('close')" aria-label="Tutup">
-          ✕
+          <span>&times;</span>
         </button>
 
-        <div class="desc-header">
-          <img
-            v-if="product?.image"
-            :src="product.image"
-            :alt="product?.name"
-            class="desc-image"
-          />
-          <div class="desc-title-wrap">
-            <h3 class="desc-title">{{ product?.name || 'Produk' }}</h3>
-            <p class="desc-sub" v-if="product?.brand">{{ product.brand }}</p>
+        <div class="scrollable-content">
+          <div class="upper-section">
+            <div class="product-image">
+              <img :src="product?.image || product?.thumbnail" :alt="product?.name">
+            </div>
+
+            <div class="price-info">
+              <div class="current-price">
+                Rp {{ formatPrice(product?.price) }}
+              </div>
+              <div class="original-price" v-if="product?.discountPercentage">
+                Rp {{ formatPrice(getOriginalPrice) }}
+              </div>
+            </div>
+
+            <div class="delivery-badge">
+              <img src="/Instant.svg" alt="Check" class="check-icon">
+              <span>Pengiriman Instan</span>
+            </div>
+
+            <h3 class="product-title">{{ product?.name || product?.title }}</h3>
+
+            <div class="shipping-info">
+              <img src="/Delivery.svg" alt="Shipping" class="shipping-icon">
+              <span>Area Pengiriman: <strong>Bekasi</strong></span>
+            </div>
+
+            <div class="gratis-info">
+              <img src="/Price.svg" alt="Shipping" class="shipping-icon">
+              <span>Biaya Pengiriman <strong>Gratis</strong></span>
+            </div>
+          </div>
+
+          <div class="description-section">
+            <h4 class="desc-title">Deskripsi</h4>
+            <p class="desc-text">{{ product?.description || 'Tidak ada deskripsi tersedia.' }}</p>
           </div>
         </div>
 
-        <div class="desc-body">
-          <h4 class="desc-section-title">Deskripsi</h4>
-          <p class="desc-text">
-            {{ descriptionText }}
-          </p>
-
-          <div v-if="product?.tags?.length" class="tags">
-            <span
-              v-for="(t,i) in product.tags"
-              :key="i"
-              class="tag"
-            >{{ t }}</span>
+        <div class="footer-button">
+          <button 
+            class="cart-btn" 
+            @click="handleAddToCart"
+            :disabled="isAddingToCart"
+          >
+            <div v-if="isInCart" class="quantity-control">
+              <button class="qty-btn" @click.stop="handleDecrement">-</button>
+              <span class="qty-text">{{ cartQty }}</span>
+              <button class="qty-btn" @click.stop="handleIncrement">+</button>
           </div>
-        </div>
-
-        <div class="desc-footer">
-          <b-button
-            variant="danger"
-            size="sm"
-            class="w-100"
-            @click="$emit('close')"
-          >Tutup</b-button>
+          <span v-else @click="handleAddToCart">
+            {{ isAddingToCart ? 'Menambahkan...' : '+ Keranjang' }}
+          </span>
+          </button>
         </div>
       </div>
     </div>
@@ -56,165 +68,387 @@
 </template>
 
 <script>
+import { mapState, mapGetters, mapActions } from 'vuex'
+
 export default {
   name: 'ProductDescriptionPopup',
   props: {
-    visible: { type: Boolean, default: false },
-    product: { type: Object, default: null }
+    visible: Boolean,
+    product: Object
   },
-  computed: {
-    descriptionText() {
-      if (!this.product) return 'Data produk belum tersedia.'
-      return this.product.description ||
-        'Belum ada deskripsi untuk produk ini. Anda bisa menambahkan field "description" pada objek produk.'
+
+  data() {
+    return {
+      isAddingToCart: false
     }
   },
-  watch: {
-    visible(v) {
-      if (v) {
-        this.$nextTick(() => {
-          this.$refs.panel?.focus()
-          document.body.style.overflow = 'hidden'
+
+  computed: {
+    ...mapState({
+      cartItems: state => state.cart.items
+    }),
+    ...mapGetters({
+      getQty: 'cart/getQty'
+    }),
+    
+    isInCart() {
+      return this.product && this.cartItems[this.product.id]
+    },
+    
+    cartQty() {
+      return this.product ? this.getQty(this.product.id) : 0
+    },
+
+    getOriginalPrice() {
+      if (!this.product?.price || !this.product?.discountPercentage) return 0;
+      return Math.round(this.product.price * (1 + this.product.discountPercentage/100));
+    }
+  },
+
+  methods: {
+    ...mapActions({
+      addToCart: 'cart/add',
+      incrementQty: 'cart/inc',
+      decrementQty: 'cart/dec'
+    }),
+    
+    formatPrice(price) {
+      return new Intl.NumberFormat('id-ID').format(price);
+    },
+
+    async handleAddToCart() {
+      if (!this.product) return
+      
+      try {
+        this.isAddingToCart = true
+        await this.addToCart(this.product)
+        
+      } catch (error) {
+        console.error('Error adding to cart:', error)
+        this.$bvToast?.toast('Gagal menambahkan produk ke keranjang', {
+          title: 'Error',
+          variant: 'danger',
+          solid: true
         })
-      } else {
-        document.body.style.overflow = ''
+      } finally {
+        this.isAddingToCart = false
+      }
+    },
+
+    handleIncrement() {
+      if (this.product) {
+        this.incrementQty(this.product.id)
+      }
+    },
+
+    handleDecrement() {
+      if (this.product) {
+        this.decrementQty(this.product.id)
       }
     }
-  },
-  beforeDestroy() {
-    document.body.style.overflow = ''
   }
 }
 </script>
 
 <style scoped>
-.desc-overlay {
+.popup-overlay {
   position: fixed;
   inset: 0;
-  z-index: 2100;
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 60px 16px 40px;
-  overflow-y: auto;
+  z-index: 1050;
+  padding: 20px;
 }
-.desc-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.4);
-  backdrop-filter: blur(2px);
-}
-.desc-panel {
+
+.popup-content {
   position: relative;
+  background: white;
   width: 100%;
-  max-width: 640px;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 20px 50px -12px rgba(0,0,0,.25);
-  padding: 28px 30px 24px;
+  max-width: 380px;
+  height: auto;
+  max-height: 85vh;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  z-index: 1;
-  outline: none;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
+
+/* Scrollable Container */
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  padding-bottom: 80px; /* Ruang untuk button */
+}
+
+/* Upper Section */
+.upper-section {
+  margin-bottom: 20px;
+}
+
+.product-image {
+  width: 100%;
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.product-image img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.price-info {
+  margin-bottom: 12px;
+}
+
+.current-price {
+  font-size: 18px;
+  font-weight: 600;
+  color: #d3161c;
+}
+
+.original-price {
+  font-size: 13px;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.product-title {
+  font-size: 15px;
+  color: #222;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+/* Description Section */
+.description-section {
+  border-top: 1px solid #eee;
+  padding-top: 16px;
+}
+
+.desc-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 12px;
+}
+
+.desc-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #666;
+  margin: 0;
+}
+
+/* Fixed Elements */
 .close-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  border: 0;
-  background: #f2f2f2;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
+  right: 16px;
+  top: 16px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  transition: background .15s;
-}
-.close-btn:hover { background:#e6e6e6; }
-
-.desc-header {
+  width: 32px;
+  height: 32px;
   display: flex;
-  gap: 18px;
-  align-items: flex-start;
-  margin-bottom: 8px;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
 }
-.desc-image {
-  width: 96px;
-  height: 96px;
-  object-fit: cover;
-  border-radius: 10px;
-  border:1px solid #eee;
-  background:#fafafa;
-  flex-shrink:0;
-}
-.desc-title-wrap { flex: 1; }
-.desc-title {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 600;
-  line-height:1.2;
-  color:#222;
-}
-.desc-sub {
-  margin: 0;
+
+.delivery-badge {
+  position: absolute;
+  right: 16px;
+  top: 60px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff8e5;
+  padding: 6px 12px;
+  border-radius: 6px;
   font-size: 13px;
-  color:#777;
+  color: #b4690e;
+  z-index: 2;
 }
 
-.desc-body {
-  padding-top: 12px;
-  flex: 1;
-}
-.desc-section-title {
-  margin:0 0 8px;
-  font-size:14px;
-  letter-spacing:.5px;
-  text-transform:uppercase;
-  font-weight:600;
-  color:#444;
-}
-.desc-text {
-  margin:0 0 16px;
-  font-size:14px;
-  line-height:1.55;
-  color:#444;
-  white-space:pre-line;
+.check-icon {
+  width: 16px;
+  height: 16px;
 }
 
-.tags { display:flex; flex-wrap:wrap; gap:6px; }
-.tag {
-  font-size:11px;
-  background:#f0f4f8;
-  color:#334;
-  padding:4px 8px;
-  border-radius:20px;
-  line-height:1;
+.shipping-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
 }
 
-.desc-footer {
-  margin-top:8px;
+.shipping-icon {
+  width: 18px;
+  height: 18px;
 }
 
-.desc-fade-enter-active,
-.desc-fade-leave-active {
-  transition: opacity .25s;
-}
-.desc-fade-enter-from,
-.desc-fade-leave-to {
-  opacity:0;
+.gratis-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 16px;
 }
 
-@media (max-width:600px){
-  .desc-panel {
-    padding:24px 22px 20px;
-    max-width:520px;
+.gratis-icon{
+  width: 18px;
+  height: 18px;
+}
+/* Footer Button */
+.footer-button {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #eee;
+  border-radius: 0 0 12px 12px;
+}
+
+.cart-btn {
+  width: 100%;
+  background: #d3161c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 48px;
+}
+
+.quantity-control {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Distribusi space antar elemen */
+}
+
+.qty-btn {
+  background: transparent;
+  border: none;
+  color: white;
+  width: 33%;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 16px;
+  line-height: bold;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qty-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
+.qty-text {
+  width: 33%;
+  text-align: center;
+  font-weight: 600;
+}
+
+.cart-btn:disabled {
+  background: #e99;
+  cursor: not-allowed;
+}
+
+.cart-btn:hover {
+  background: #b81419;
+}
+
+.qty-text {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.qty-btn {
+  transition: transform 0.1s ease;
+}
+
+.qty-btn:active {
+  transform: scale(0.95);
+}
+
+.minus, plus {
+  order: unset;
+}
+
+/* Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.qty-btn, .qty-text {
+  transition: all 0.2s ease;
+}
+
+.cart-btn:disabled {
+  background: #e99;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.footer-button {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px;
+  background: white;
+  border-top: 1px solid #eee;
+  border-radius: 0 0 12px 12px;
+}
+
+@media (max-width: 480px) {
+  .popup-overlay {
+    padding: 16px;
   }
-  .desc-header { flex-direction:row; }
-  .desc-title { font-size:18px; }
+  
+  .popup-content {
+    max-width: 340px;
+  }
+
+  .product-image {
+    height: 240px;
+  }
 }
 </style>
-```

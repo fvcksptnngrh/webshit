@@ -1,106 +1,88 @@
+```vue
+// filepath: d:\INTERN PHASE\myAlfa\components\Navbar.vue
 <template>
-  <div class="nav-shell">
-    <!-- NAVBAR -->
-    <b-navbar toggleable="lg" type="light" variant="light" class="navbar-main shadow-sm">
+  <div class="nav-shell" :style="navInlineStyle">
+    <b-navbar type="light" variant="light" class="navbar-main shadow-sm">
       <b-container class="navbar-main__container">
         <b-navbar-brand href="#" class="navbar-main__brand">
           <img src="/logo-alfagift.png" alt="Alfagift Logo" class="navbar-main__logo" />
         </b-navbar-brand>
 
-        <!-- Trigger kategori (TANPA panel di dalam) -->
-        <div
-          class="cat-wrapper"
-          @mouseenter="openCat"
-          @mouseleave="scheduleClose"
-        >
-          <div
-            class="cat-trigger d-inline-flex align-items-center"
-            role="button"
-            tabindex="0"
-            :aria-expanded="showCatPanel ? 'true':'false'"
-            aria-controls="cat-panel"
-            @click.prevent="toggleCatClick"
-            @keydown.enter.prevent="toggleCatClick"
-            @keydown.space.prevent="toggleCatClick"
-          >
-            <b-icon icon="grid" class="navbar-main__category-icon"></b-icon>
-            <span class="navbar-main__category-label">Kategori</span>
+        <!-- Trigger kategori -->
+        <div class="cat-trigger-wrapper"
+             @mouseenter="openCat"
+             @mouseleave="scheduleClose">
+          <div class="cat-trigger"
+               role="button"
+               tabindex="0"
+               :aria-expanded="showCatPanel ? 'true':'false'"
+               aria-controls="cat-panel"
+               @click.prevent="toggleCatClick"
+               @keydown.enter.prevent="toggleCatClick"
+               @keydown.space.prevent="toggleCatClick">
+            <b-icon icon="grid" class="icon" />
+            <span>Kategori</span>
             <b-icon icon="chevron-down" class="chevron" :class="{ open: showCatPanel }" />
           </div>
         </div>
 
-        <!-- SEARCH -->
+        <!-- Search -->
         <b-form inline class="navbar-main__search">
           <b-input-group class="navbar-main__search-group">
-            <b-form-input
-              placeholder="Temukan produk favoritmu disini"
-              class="navbar-main__search-input"
-              @focus="onSearchFocus(true)"
-              @blur="onSearchFocus(false)"
-            />
+            <b-form-input placeholder="Temukan produk favoritmu disini"
+                          class="navbar-main__search-input"
+                          @focus="$emit('search-focus', true)"
+                          @blur="$emit('search-focus', false)" />
             <b-input-group-append>
               <b-button variant="danger" class="navbar-main__search-button">
-                <b-icon icon="search"></b-icon>
+                <b-icon icon="search" />
               </b-button>
             </b-input-group-append>
           </b-input-group>
         </b-form>
 
-        <!-- RIGHT -->
+        <!-- Right -->
         <b-nav class="navbar-main__right ml-auto">
           <b-nav-item href="#" class="navbar-main__link text-secondary">Brand</b-nav-item>
             <b-nav-item href="#" class="navbar-main__link text-secondary">Promo</b-nav-item>
-
           <div class="cart-wrapper">
             <CartBadge @open-cart="toggleMiniCart" />
             <MiniCart v-if="showMiniCart" @close="showMiniCart=false" />
           </div>
-
           <b-nav-item href="#" class="navbar-main__user text-secondary">
-            <b-icon icon="person" class="navbar-main__user-icon"></b-icon>
+            <b-icon icon="person" class="navbar-main__user-icon" />
             <span class="navbar-main__user-name">Adhi</span>
           </b-nav-item>
         </b-nav>
       </b-container>
     </b-navbar>
 
-    <!-- PANEL KATEGORI (DETACHED, di luar navbar, tepat di bawah) -->
-    <transition
-      name="cat-slide"
-      @enter="onEnter"
-      @after-enter="afterEnter"
-      @leave="onLeave"
-      @after-leave="afterLeave"
-    >
-      <div
-        v-if="showCatPanel"
-        id="cat-panel"
-        class="cat-panel cat-panel--detached"
-        @mouseenter="cancelClose"
-        @mouseleave="scheduleClose"
-      >
+    <!-- Panel kategori di luar navbar -->
+    <transition name="cat-slide"
+                @enter="onEnter" @after-enter="afterEnter"
+                @leave="onLeave" @after-leave="afterLeave">
+      <div v-if="showCatPanel"
+           id="cat-panel"
+           class="cat-panel"
+           @mouseenter="cancelClose"
+           @mouseleave="scheduleClose">
         <div class="cat-panel__inner">
           <div class="cat-cols">
-            <!-- KIRI -->
             <ul class="cat-list">
-              <li
-                v-for="(c,i) in categories"
-                :key="i"
-                class="cat-item"
-                :class="{ active: i === hoverIndex }"
-                @mouseenter="hoverIndex=i"
-                @focus="hoverIndex=i"
-                tabindex="0"
-              >
+              <li v-for="(c,i) in categories"
+                  :key="i"
+                  class="cat-item"
+                  :class="{ active: i === hoverIndex }"
+                  @mouseenter="hoverIndex=i"
+                  tabindex="0">
                 <span class="cat-icon">{{ c.icon }}</span>
                 <span class="cat-name">{{ c.name }}</span>
                 <b-icon icon="chevron-right" class="chevron-right" />
               </li>
             </ul>
-            <!-- KANAN -->
             <div class="subcol" v-if="hoverCategory">
               <h5 class="subcol-title">{{ hoverCategory.name }}</h5>
-              <p class="subcol-placeholder">Sub kategori akan ditaruh di sini nanti.</p>
+              <p class="subcol-placeholder">Sub kategori akan ditaruh di sini.</p>
             </div>
           </div>
         </div>
@@ -122,24 +104,30 @@ export default {
       showCatPanel: false,
       closeTimer: null,
       hoverIndex: 0,
+      topOffset: 0,          // tinggi TopNavbar dinamis
       categories: [
-        { name: 'Kebutuhan Dapur', icon: '🍳' },
-        { name: 'Kebutuhan Ibu & Anak', icon: '🍼' },
-        { name: 'Kebutuhan Rumah', icon: '🏠' },
-        { name: 'Makanan', icon: '🍜' },
-        { name: 'Minuman', icon: '🥤' },
-        { name: 'Produk Segar & Beku', icon: '❄️' },
-        { name: 'Personal Care', icon: '🧴' },
-        { name: 'Kebutuhan Kesehatan', icon: '💊' },
-        { name: 'Lifestyle', icon: '🎧' },
-        { name: 'Pet Foods', icon: '🐾' }
+        { name:'Kebutuhan Dapur', icon:'🍳' },
+        { name:'Kebutuhan Ibu & Anak', icon:'🍼' },
+        { name:'Kebutuhan Rumah', icon:'🏠' },
+        { name:'Makanan', icon:'🍜' },
+        { name:'Minuman', icon:'🥤' },
+        { name:'Produk Segar & Beku', icon:'❄️' },
+        { name:'Personal Care', icon:'🧴' },
+        { name:'Kebutuhan Kesehatan', icon:'💊' },
+        { name:'Lifestyle', icon:'🎧' },
+        { name:'Pet Foods', icon:'🐾' }
       ]
     }
   },
   computed: {
-    hoverCategory() { return this.categories[this.hoverIndex] || null }
+    hoverCategory() { return this.categories[this.hoverIndex] || null },
+    navInlineStyle() {
+      return { '--nav-offset': this.topOffset + 'px' }
+    }
   },
   mounted() {
+    this.computeOffset()
+    window.addEventListener('resize', this.computeOffset)
     this.$root.$on('ui:openMiniCart', () => {
       this.showMiniCart = true
       this.hideCatImmediate()
@@ -147,11 +135,16 @@ export default {
     document.addEventListener('mousedown', this.handleOutside)
   },
   beforeDestroy() {
+    window.removeEventListener('resize', this.computeOffset)
     document.removeEventListener('mousedown', this.handleOutside)
     this.clearTimer()
   },
   methods: {
-    onSearchFocus(f) { this.$emit('search-focus', f) },
+    computeOffset() {
+      // cari elemen TopNavbar jika ada
+      const topBar = document.querySelector('.top-navbar') || document.querySelector('.TopNavbar')
+      this.topOffset = topBar ? topBar.offsetHeight : 0
+    },
     toggleMiniCart() {
       this.showMiniCart = !this.showMiniCart
       if (this.showMiniCart) this.hideCatImmediate()
@@ -174,51 +167,48 @@ export default {
       this.showCatPanel ? this.hideCatImmediate() : this.openCat()
     },
     clearTimer() {
-      if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null }
+      if (this.closeTimer) {
+        clearTimeout(this.closeTimer)
+        this.closeTimer = null
+      }
     },
     handleOutside(e) {
       if (!this.$el) return
       const panel = this.$el.querySelector('#cat-panel')
       const trigger = this.$el.querySelector('.cat-trigger')
-      if (
-        this.showCatPanel &&
-        panel && !panel.contains(e.target) &&
-        trigger && !trigger.contains(e.target)
-      ) this.hideCatImmediate()
-
+      if (this.showCatPanel && panel && !panel.contains(e.target) && trigger && !trigger.contains(e.target)) {
+        this.hideCatImmediate()
+      }
       if (this.showMiniCart) {
         const cartWrap = this.$el.querySelector('.cart-wrapper')
         if (cartWrap && !cartWrap.contains(e.target)) this.showMiniCart = false
       }
     },
-    onEnter(el) {
-      el.style.height = '0px'
-      const h = el.scrollHeight
-      requestAnimationFrame(() => { el.style.height = h + 'px' })
-    },
+    onEnter(el) { el.style.height = '0px'; const h = el.scrollHeight; requestAnimationFrame(()=>{ el.style.height = h+'px' }) },
     afterEnter(el) { el.style.height = 'auto' },
-    onLeave(el) {
-      el.style.height = el.scrollHeight + 'px'
-      requestAnimationFrame(() => { el.style.height = '0px' })
-    },
-    afterLeave(el) { el.style.height = '0px' }
+    onLeave(el) { el.style.height = el.scrollHeight+'px'; requestAnimationFrame(()=>{ el.style.height='0px' }) },
+    afterLeave(el) { el.style.height='0px' }
   }
 }
 </script>
 
 <style scoped>
-/* Wrapper agar panel bisa absolute di bawah */
 .nav-shell {
-  position:relative;
+  position: sticky; /* Ubah ke fixed */
+  top: 36px; /* Sesuai tinggi TopNavbar */
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: #fff;
 }
+  
 
-/* NAV */
+/* Sticky navbar */
+
 .navbar-main {
-  background:#fff;
-  position:sticky;
-  top: 0;
-  z-index:1000;
-  border-bottom:1px solid #eee;
+  width: 100%;
+  background: #fff;
+  border-bottom: 1px solid #eee;
 }
 .navbar-main__container {
   max-width:1240px;
@@ -228,128 +218,81 @@ export default {
   gap:12px;
   padding:8px 8px;
 }
+
 .navbar-main__brand { margin-right:12px; }
 .navbar-main__logo { height:40px; width:auto; display:block; }
 
 /* Trigger */
-.cat-wrapper { position:static; }
+.cat-trigger-wrapper { position:relative; }
 .cat-trigger {
   padding:8px 18px;
   border-radius:8px;
+  border:1px solid #e6e6e6;
+  background:#fff;
   cursor:pointer;
-  color:#444;
-  font-size:14px;
-  font-weight:500;
   display:inline-flex;
   align-items:center;
   gap:8px;
+  font-size:14px;
+  font-weight:500;
+  color:#444;
+  transition:background .15s,border-color .15s;
   user-select:none;
-  border:1px solid #e6e6e6;
-  background:#fff;
-  transition:background .15s;
 }
 .cat-trigger:hover { background:#f8f8f8; }
 .cat-trigger:focus { outline:2px solid #d3161c33; outline-offset:2px; }
 .chevron { font-size:14px; transition:transform .25s; }
 .chevron.open { transform:rotate(180deg); }
-.navbar-main__category-icon { font-size:16px; }
+.icon { font-size:16px; }
 
-/* PANEL DETACHED (di luar navbar) */
-.cat-panel--detached {
+/* Panel */
+.cat-panel {
   position:absolute;
-  top:100%; /* tepat di bawah navbar */
+  top:100%;
   left:0;
   right:0;
   background:#fff;
   border-bottom:1px solid #eee;
   box-shadow:0 10px 34px -10px rgba(0,0,0,.18);
-  z-index:900; /* di bawah navbar (1000) agar nav tetap di atas border, bisa dinaikkan jika perlu */
-  /* Tambah margin-top kecil jika ingin ada jarak: margin-top:2px; */
+  z-index:950;
 }
 .cat-panel__inner {
   max-width:1240px;
   margin:0 auto;
   padding:28px 32px 40px;
 }
-.cat-cols {
-  display:flex;
-  min-height:420px;
-}
+.cat-cols { display:flex; min-height:420px; }
 
-/* Kolom kiri */
+/* Left column */
 .cat-list {
   list-style:none;
-  margin:0;
-  padding:0;
+  margin:0; padding:0;
   width:360px;
   border-right:1px solid #f0f0f0;
   background:#fff;
 }
 .cat-item {
-  display:flex;
-  align-items:center;
+  display:flex; align-items:center;
   gap:16px;
   padding:16px 28px 16px 34px;
   font-size:15px;
   cursor:pointer;
   color:#30343a;
-  transition:background .15s, color .15s;
-  outline:none;
+  transition:background .15s,color .15s;
 }
 .cat-item:not(:last-child){ border-bottom:1px solid #f6f6f6; }
 .cat-item:hover,
 .cat-item.active { background:#fafafa; color:#d3161c; }
-.cat-item:focus { background:#f2f6ff; color:#d3161c; }
-.cat-icon {
-  width:26px;
-  text-align:center;
-  font-size:18px;
-  flex-shrink:0;
-  opacity:.9;
-}
-.cat-name {
-  flex:1;
-  font-weight:500;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.chevron-right {
-  font-size:16px;
-  color:#b5b5b5;
-  transition:color .15s, transform .15s;
-}
+.cat-icon { width:26px; text-align:center; font-size:18px; opacity:.9; }
+.cat-name { flex:1; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.chevron-right { font-size:16px; color:#b5b5b5; transition:color .15s, transform .15s; }
 .cat-item:hover .chevron-right,
-.cat-item.active .chevron-right {
-  color:#d3161c;
-  transform:translateX(2px);
-}
+.cat-item.active .chevron-right { color:#d3161c; transform:translateX(2px); }
 
-/* Kolom kanan */
-.subcol {
-  flex:1;
-  background:#fff;
-  padding:38px 48px;
-}
-.subcol-title {
-  margin:0 0 14px;
-  font-size:18px;
-  font-weight:600;
-  color:#222;
-}
-.subcol-placeholder {
-  margin:0;
-  font-size:14px;
-  color:#666;
-}
-
-/* Transition height */
-.cat-slide-enter-active,
-.cat-slide-leave-active {
-  transition:height .30s cubic-bezier(.4,0,.2,1), opacity .25s;
-}
-.cat-slide-enter-from,
-.cat-slide-leave-to { opacity:0; }
+/* Right column */
+.subcol { flex:1; padding:38px 48px; }
+.subcol-title { margin:0 0 14px; font-size:18px; font-weight:600; }
+.subcol-placeholder { margin:0; font-size:14px; color:#666; }
 
 /* Search */
 .navbar-main__search { flex:1 1 auto; margin:0 16px; }
@@ -367,7 +310,7 @@ export default {
   border-color:#d3161c;
 }
 
-/* Right */
+/* Right side */
 .navbar-main__right {
   display:inline-flex;
   align-items:center;
@@ -375,12 +318,15 @@ export default {
   position:relative;
   z-index:2;
 }
-.cart-wrapper {
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-  cursor:pointer;
+.cart-wrapper { position:relative; display:inline-flex; align-items:center; cursor:pointer; }
+
+/* Transition */
+.cat-slide-enter-active,
+.cat-slide-leave-active {
+  transition:height .30s cubic-bezier(.4,0,.2,1), opacity .25s;
 }
+.cat-slide-enter-from,
+.cat-slide-leave-to { opacity:0; }
 
 @media (max-width:992px){
   .navbar-main__right .navbar-main__link { display:none; }
@@ -390,3 +336,4 @@ export default {
   .subcol { padding:30px 24px; }
 }
 </style>
+```
